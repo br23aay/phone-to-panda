@@ -14,7 +14,7 @@ Submission for the Humanoid Robot Learning Research internship challenge. Every 
 | Clips that drive the robot to success | 13 |
 | Demonstrations produced (8 layouts per clip) | 101 of 112 replays, 90% |
 | Speed conditions measured | 42 replays each, on unseen layouts |
-| Policy trained only on those demonstrations | 55% success (11 of 20 episodes), from camera images and robot state alone |
+| Policy trained only on those demonstrations | 48% success over 50 episodes, from camera images and robot state alone |
 
 [Results](#results) · [How it works](#how-it-works) · [Design choices](#design-choices) · [What worked and what did not](#what-worked-and-what-did-not) · [Compute setup](#compute-setup) · [How to run](#how-to-run) · [Repository layout](#repository-layout)
 
@@ -46,17 +46,18 @@ Non-uniform speedup is better than uniform at every speed where anything works. 
 
 *The same clip three ways. Uniform 2x leaves the object behind; non-uniform 2x keeps the grasp.*
 
-**3. Training a policy on the demonstrations.** An ACT policy trained only on my 101 demonstrations completes the task in 11 of 20 evaluation episodes (55%). At test time it gets two camera images and the robot's own state. It is never told where the object or the basket is.
+**3. Training a policy on the demonstrations.** An ACT policy trained only on my 101 demonstrations completes the task in 24 of 50 evaluation episodes (48%). At test time it gets two camera images and the robot's own state. It is never told where the object or the basket is.
 
 | Policy | Evaluation images | Success | Episodes |
 | --- | --- | --- | --- |
-| ACT, 45,000 training steps | 256 x 256, same as training | **55%** | 20 |
+| ACT, 45,000 training steps | 256 x 256, same as training | **48%** | 50 |
+| ACT, 45,000 training steps, first run at the correct size | 256 x 256, same as training | 55% | 20 |
 | ACT, 45,000 training steps | 360 x 360, my mistake | 0% | 20 |
 | ACT, 15,000 training steps | 360 x 360, my mistake | 0% | 70 |
 
-Successful episodes finish in 106 to 273 steps. The 9 failures all run to the 400-step limit.
+In the 20-episode run, successful episodes finished in 106 to 273 steps and the 9 failures all ran to the 400-step limit. So the policy either completes the task at about the speed of my demonstrations or does not complete it at all.
 
-The 0% rows are not a property of the policy. For two days I evaluated at the wrong image size and believed the policy had failed. That story is under "What worked and what did not". A 50-episode evaluation and a longer training run are in progress; this table will be updated with them.
+The 0% rows are not a property of the policy. For two days I evaluated at the wrong image size and believed the policy had failed. That story is under "What worked and what did not". Across both runs that is 35 successes in 70 episodes.
 
 ## How it works
 
@@ -103,7 +104,7 @@ flowchart LR
 
 **I evaluated the policy at the wrong image size for two days.** The first policy scored 0 of 50. In the videos the arm drifted away from the objects. I checked for a mismatch between training and evaluation, found none, and concluded the policy had not learned. Re-planning more often and a longer step limit changed nothing. Then a policy with three times the training also scored exactly 0, which pointed away from training and back at the evaluation.
 
-The cause: my demonstrations are 256 x 256 images, and LeRobot's LIBERO evaluation config defaults to 360 x 360. My check had missed it because I built the environment class directly, and that class defaults to 256, so the images I compared were not the images the evaluation fed to the policy. With `--env.observation_height=256 --env.observation_width=256` the same checkpoint goes from 0% to 55%.
+The cause: my demonstrations are 256 x 256 images, and LeRobot's LIBERO evaluation config defaults to 360 x 360. My check had missed it because I built the environment class directly, and that class defaults to 256, so the images I compared were not the images the evaluation fed to the policy. With `--env.observation_height=256 --env.observation_width=256` the same checkpoint goes from 0% to about 50%.
 
 What I take from it: compare the tensors at the policy's input, in the real evaluation path, not a reconstruction of what the pipeline should produce. And a result of exactly zero across very different training budgets is a sign of a broken measurement, not a weak model.
 
@@ -115,7 +116,7 @@ What I take from it: compare the tensors at the policy's input, in the real eval
 - One task, one object, one simulator.
 - Building demonstrations reads object and basket positions from the simulator. A trained policy would not get those; it sees only camera images and its own state.
 - The speed results are for open-loop replay with a simple controller, not for the learned policy.
-- The 55% is from 20 episodes, so it is a rough figure.
+- The policy result is from 70 episodes on one task. I have not yet evaluated the 15,000-step policy at the correct image size, so I cannot say how much the extra training contributed.
 - 14 clips from one person on one evening.
 
 ## Compute setup
@@ -188,7 +189,7 @@ I built this around problems Humanoid describes in its public technical write-up
 In the order I would do them:
 
 1. **A tracking controller that anticipates the path.** The proportional controller lags at speed. Feed-forward velocity should move the point where speedup breaks, and would show whether the limit is the controller or the physics of the grasp.
-2. **Close the gap from 55%.** Look at the 9 episodes that time out, train longer, and try temporal ensembling of the action chunks.
+2. **Close the gap from 48%.** Look at the episodes that time out, train longer, and try temporal ensembling of the action chunks.
 3. **Residual RL on top of the replay.** Keep the retargeted path as the base and let PPO learn small corrections with a time penalty. My earlier work was PPO on the Shadow Hand in MuJoCo, so this is the direction I know best.
 4. **Post-train a small VLA** (SmolVLA) on the same demonstrations and compare it with ACT.
 5. **Depth and rotation.** Add a second camera, or an egocentric view with a hand-pose model, so the retargeting is no longer planar.
