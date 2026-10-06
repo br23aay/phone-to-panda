@@ -16,6 +16,8 @@ Submission for the Humanoid Robot Learning Research internship challenge. Every 
 | Speed conditions measured | 42 replays each, on unseen layouts |
 | Policy trained on the demonstrations | did not work, reported below |
 
+[Results](#results) · [How it works](#how-it-works) · [Design choices](#design-choices) · [What worked and what did not](#what-worked-and-what-did-not) · [Compute setup](#compute-setup) · [How to run](#how-to-run) · [Repository layout](#repository-layout)
+
 ## Results
 
 **1. Phone video to robot motion.** 13 of my 14 clips make the simulated arm complete the task ("pick up the alphabet soup and place it in the basket"). Replayed on 8 different starting layouts each, 101 of 112 replays succeed (90%). One clip (clip-7) fails on every layout and one (clip-2) fails on 3 of 8.
@@ -55,6 +57,17 @@ Non-uniform speedup is better than uniform at every speed where anything works. 
 Details and the checks I ran are under "What did not work".
 
 ## How it works
+
+```mermaid
+flowchart LR
+    A[Phone clip<br/>side-on, 30 fps] --> B[Hand keypoints<br/>MediaPipe]
+    B --> C[Retarget<br/>progress s, height h, grip]
+    C --> D[Replay in LIBERO<br/>Panda, P-controller]
+    D --> E[Demonstrations<br/>images, state, actions]
+    C --> F[Retime<br/>uniform / non-uniform]
+    F --> D
+    E --> G[ACT policy<br/>train and evaluate]
+```
 
 1. **Record.** Phone fixed side-on at table height. Box and tub 20 cm apart. 14 clips of 5 to 10 seconds.
 2. **Keypoints.** MediaPipe Hand Landmarker gives wrist, thumb tip and index tip in every frame (`src/extract_keypoints.py`).
@@ -104,6 +117,33 @@ So the policy itself has not learned the task. Re-planning every 20 actions inst
 - The speed results are for open-loop replay with a simple controller, not for a learned policy.
 - 14 clips from one person on one evening.
 
+## Compute setup
+
+The work is split across two machines, because my laptop cannot run the simulator or train a policy.
+
+| Stage | Where | Why |
+| --- | --- | --- |
+| Recording, keypoint extraction, clip checks | Windows laptop, CPU only | MediaPipe runs on a CPU. No GPU needed |
+| LIBERO replays, demonstrations, speed sweeps, videos | Google Colab, CPU runtime | LIBERO is built on robosuite and MuJoCo with headless EGL rendering, which is a Linux stack. The replays use physics, not a GPU |
+| ACT training and evaluation | Google Colab, T4 GPU | My laptop has no CUDA GPU. Training took about 2 hours 20 minutes per 15,000 steps on a T4 |
+
+Colab sessions are not persistent, and that shaped the tooling. Every long job copies its inputs from Google Drive to local disk first, writes results and checkpoints back as it goes, and can be restarted. `src/colab_train_act.py` and `src/colab_continue_training.py` are those job scripts.
+
+**Why ACT and not SmolVLA.** The challenge suggests a small VLA such as SmolVLA. I trained ACT first because it is about a tenth of the size and trains on a free-tier T4, which let me get the full loop (data, training, evaluation) running end to end before spending GPU hours. ACT did not learn the task, and I used the remaining time to find out why instead of starting a second, larger model on the same data. SmolVLA is step 4 in the list at the end.
+
+## Repository layout
+
+```
+data/keypoints/        hand keypoints for the 14 clips (wrist, thumb tip, index tip per frame)
+src/                   pipeline scripts, one per step
+results/
+  replay_speed_raw.csv one row per replay: clip, layout, method, speedup, success, steps
+  replay_speed.csv     the table in this README
+  figures/speed.png    the chart in this README
+  videos/              replay videos at each speed, and the side-by-side
+  policy/              training and evaluation logs for the ACT runs
+```
+
 ## How to run
 
 Laptop (any OS), for steps 2 and 3:
@@ -130,7 +170,7 @@ python src/plot_results.py
 python src/make_videos.py clip-13    # replay videos
 ```
 
-Policy training used `src/convert_demos.py`, then `lerobot-train --policy.type=act`. The exact commands are in `src/day_job.py` and `src/day_job2.py`, which are the Colab job scripts I ran.
+Policy training used `src/convert_demos.py`, then `lerobot-train --policy.type=act`. The exact commands are in `src/colab_train_act.py` and `src/colab_continue_training.py`, which are the Colab job scripts I ran.
 
 ## Why this could matter for a humanoid robot company
 
