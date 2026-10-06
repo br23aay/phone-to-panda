@@ -14,7 +14,7 @@ Submission for the Humanoid Robot Learning Research internship challenge. Every 
 | Clips that drive the robot to success | 13 |
 | Demonstrations produced (8 layouts per clip) | 101 of 112 replays, 90% |
 | Speed conditions measured | 42 replays each, on unseen layouts |
-| Policy trained on the demonstrations | did not work, reported below |
+| Policy trained only on those demonstrations | 55% success (11 of 20 episodes), from camera images and robot state alone |
 
 [Results](#results) · [How it works](#how-it-works) · [Design choices](#design-choices) · [What worked and what did not](#what-worked-and-what-did-not) · [Compute setup](#compute-setup) · [How to run](#how-to-run) · [Repository layout](#repository-layout)
 
@@ -46,15 +46,17 @@ Non-uniform speedup is better than uniform at every speed where anything works. 
 
 *The same clip three ways. Uniform 2x leaves the object behind; non-uniform 2x keeps the grasp.*
 
-**3. Training a policy on the demonstrations.** This did not work. An ACT policy trained only on my 101 demonstrations never completed the task.
+**3. Training a policy on the demonstrations.** An ACT policy trained only on my 101 demonstrations completes the task in 11 of 20 evaluation episodes (55%). At test time it gets two camera images and the robot's own state. It is never told where the object or the basket is.
 
-| Policy | Success | Episodes |
-| --- | --- | --- |
-| 15,000 steps, re-planning every 100 actions, 280-step limit | 0% | 50 |
-| 15,000 steps, re-planning every 20 actions, 400-step limit | 0% | 20 |
-| Longer run: 35,000 more steps at 3 times the learning rate | not evaluated | the Colab session ended during training |
+| Policy | Evaluation images | Success | Episodes |
+| --- | --- | --- | --- |
+| ACT, 45,000 training steps | 256 x 256, same as training | **55%** | 20 |
+| ACT, 45,000 training steps | 360 x 360, my mistake | 0% | 20 |
+| ACT, 15,000 training steps | 360 x 360, my mistake | 0% | 70 |
 
-Details and the checks I ran are under "What did not work".
+Successful episodes finish in 106 to 273 steps. The 9 failures all run to the 400-step limit.
+
+The 0% rows are not a property of the policy. For two days I evaluated at the wrong image size and believed the policy had failed. That story is under "What worked and what did not". A 50-episode evaluation and a longer training run are in progress; this table will be updated with them.
 
 ## How it works
 
@@ -99,13 +101,11 @@ flowchart LR
 
 **clip-7 fails everywhere.** Its grasp is detected too early (it reports holding the box for 6.6 of 7.7 seconds), so the gripper closes in the wrong place.
 
-**The policy does not work.** ACT trained on the 101 demonstrations scores 0%. In the evaluation videos of the first policy the arm drifts away from the objects instead of reaching for them. I checked that this is not a mismatch between training data and evaluation:
+**I evaluated the policy at the wrong image size for two days.** The first policy scored 0 of 50. In the videos the arm drifted away from the objects. I checked for a mismatch between training and evaluation, found none, and concluded the policy had not learned. Re-planning more often and a longer step limit changed nothing. Then a policy with three times the training also scored exactly 0, which pointed away from training and back at the evaluation.
 
-- the evaluation environment's camera images are pixel-identical to the saved demonstration frames,
-- the robot state vector is identical,
-- replaying a saved demonstration's actions inside the evaluation environment succeeds.
+The cause: my demonstrations are 256 x 256 images, and LeRobot's LIBERO evaluation config defaults to 360 x 360. My check had missed it because I built the environment class directly, and that class defaults to 256, so the images I compared were not the images the evaluation fed to the policy. With `--env.observation_height=256 --env.observation_width=256` the same checkpoint goes from 0% to 55%.
 
-So the policy itself has not learned the task. Re-planning every 20 actions instead of 100 and raising the step limit from 280 to 400 made no difference. A longer training run was cut off by a Colab disconnect before it could be evaluated, so I cannot say whether more training fixes it. I do not know the cause. My guesses are too little data for this policy type, and demonstrations that are hard to imitate: they come from 14 different human timings, and the proportional controller produces saturated actions.
+What I take from it: compare the tensors at the policy's input, in the real evaluation path, not a reconstruction of what the pipeline should produce. And a result of exactly zero across very different training budgets is a sign of a broken measurement, not a weak model.
 
 **Housekeeping that went wrong.** The results file of the first speed sweep was lost when its Colab session ended. Every outcome had been printed in the log, so `src/reconstruct_sweep.py` rebuilds the file from that log; the step counts are recomputed, which is exact because retiming is deterministic. Rows for 1.25x and 1.75x come from a later run and were written directly.
 
@@ -114,7 +114,8 @@ So the policy itself has not learned the task. Re-planning every 20 actions inst
 - Depth and wrist rotation are ignored. The gripper always points straight down.
 - One task, one object, one simulator.
 - Building demonstrations reads object and basket positions from the simulator. A trained policy would not get those; it sees only camera images and its own state.
-- The speed results are for open-loop replay with a simple controller, not for a learned policy.
+- The speed results are for open-loop replay with a simple controller, not for the learned policy.
+- The 55% is from 20 episodes, so it is a rough figure.
 - 14 clips from one person on one evening.
 
 ## Compute setup
@@ -129,7 +130,7 @@ The work is split across two machines, because my laptop cannot run the simulato
 
 Colab sessions are not persistent, and that shaped the tooling. Every long job copies its inputs from Google Drive to local disk first, writes results and checkpoints back as it goes, and can be restarted. `src/colab_train_act.py` and `src/colab_continue_training.py` are those job scripts.
 
-**Why ACT and not SmolVLA.** The challenge suggests a small VLA such as SmolVLA. I trained ACT first because it is about a tenth of the size and trains on a free-tier T4, which let me get the full loop (data, training, evaluation) running end to end before spending GPU hours. ACT did not learn the task, and I used the remaining time to find out why instead of starting a second, larger model on the same data. SmolVLA is step 4 in the list at the end.
+**Why ACT and not SmolVLA.** The challenge suggests a small VLA such as SmolVLA. I trained ACT first because it is about a tenth of the size and trains on a free-tier T4, which let me get the full loop (data, training, evaluation) running end to end before spending GPU hours. The first evaluations read 0%, and I spent the remaining time finding out why instead of starting a second, larger model on the same data. The cause turned out to be the evaluation, not the policy. SmolVLA is step 4 in the list at the end.
 
 ## Repository layout
 
@@ -180,14 +181,14 @@ I built this around problems Humanoid describes in its public technical write-up
 - **The same interface.** The pipeline works in end-effector space: where the gripper should be and whether it is closed. That is the action space Humanoid's VLA uses, so human hand video maps onto it without a hand-to-joint model.
 - **Throughput, measured.** Industrial customers pay for picks per minute, not success rate alone. This repo reports successful picks per minute at each speed and shows where speedup stops paying off.
 - **Evidence for retiming the data, not the playback.** Keeping the grasp at normal speed beat uniform speedup at every speed that worked at all. That matches what Humanoid reports for its own policies, here reproduced on 14 clips from a phone.
-- **Known failure modes.** Every failure in this project has a cause written next to it, or an honest "I do not know yet".
+- **Known failure modes.** Every failure in this project has a cause written next to it, including the two days I lost to my own evaluation error.
 
 ## What I would build next
 
 In the order I would do them:
 
 1. **A tracking controller that anticipates the path.** The proportional controller lags at speed. Feed-forward velocity should move the point where speedup breaks, and would show whether the limit is the controller or the physics of the grasp.
-2. **Debug the policy on the smallest case.** Train on one clip's demonstrations, confirm it works, then add clips one at a time to find where imitation breaks.
+2. **Close the gap from 55%.** Look at the 9 episodes that time out, train longer, and try temporal ensembling of the action chunks.
 3. **Residual RL on top of the replay.** Keep the retargeted path as the base and let PPO learn small corrections with a time penalty. My earlier work was PPO on the Shadow Hand in MuJoCo, so this is the direction I know best.
 4. **Post-train a small VLA** (SmolVLA) on the same demonstrations and compare it with ACT.
 5. **Depth and rotation.** Add a second camera, or an egocentric view with a hand-pose model, so the retargeting is no longer planar.
