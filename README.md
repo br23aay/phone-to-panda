@@ -152,7 +152,3 @@ In the order I would do them:
 4. **Post-train a small VLA** (SmolVLA) on the same demonstrations and compare it with ACT.
 5. **Depth and rotation.** Add a second camera, or an egocentric view with a hand-pose model, so the retargeting is no longer planar.
 6. **A second embodiment.** Replay the same object-centric trajectories on a different gripper to test how much of the pipeline is robot-specific.
-
-## Note on AI assistance
-
-This project was built with heavy use of an AI coding assistant (Claude), which the challenge allows. The phone data is my own recording.
