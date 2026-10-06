@@ -18,7 +18,7 @@ from retarget import retarget
 from retime import add_dwell, nonuniform, uniform
 
 OBJECT = "alphabet_soup_1_pos"
-SPEEDS = [1.0, 1.5, 2.0, 2.5, 3.0]
+SPEEDS = [float(x) for x in os.environ.get("SPEEDS", "1.0,1.5,2.0,2.5,3.0").split(",")]
 RAW = "results/replay_speed_raw.csv"
 
 

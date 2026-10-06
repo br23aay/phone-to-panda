@@ -1,0 +1,15 @@
+method,speedup,success_rate,seconds_per_attempt,successful_picks_per_minute,n
+uniform,1.0,0.929,7.45,7.5,42
+nonuniform,1.0,0.929,7.45,7.5,42
+nonuniform,1.25,0.786,6.34,7.4,42
+uniform,1.25,0.714,5.95,7.2,42
+nonuniform,1.5,0.595,5.62,6.3,42
+uniform,1.5,0.095,4.96,1.2,42
+nonuniform,1.75,0.31,5.11,3.6,42
+uniform,1.75,0.0,4.26,0.0,42
+nonuniform,2.0,0.143,4.72,1.8,42
+uniform,2.0,0.0,3.74,0.0,42
+nonuniform,2.5,0.071,4.17,1.0,42
+uniform,2.5,0.0,3.0,0.0,42
+nonuniform,3.0,0.0,3.81,0.0,42
+uniform,3.0,0.0,2.5,0.0,42
