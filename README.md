@@ -50,7 +50,7 @@ Non-uniform speedup is better than uniform at every speed where anything works. 
 | --- | --- | --- |
 | 15,000 steps, re-planning every 100 actions, 280-step limit | 0% | 50 |
 | 15,000 steps, re-planning every 20 actions, 400-step limit | 0% | 20 |
-| 50,000 steps (the last 35,000 at 3 times the learning rate), re-planning every 20 actions, 400-step limit | no result file | |
+| Longer run: 35,000 more steps at 3 times the learning rate | not evaluated | the Colab session ended during training |
 
 Details and the checks I ran are under "What did not work".
 
@@ -92,7 +92,7 @@ Details and the checks I ran are under "What did not work".
 - the robot state vector is identical,
 - replaying a saved demonstration's actions inside the evaluation environment succeeds.
 
-So the policy itself has not learned the task. Re-planning every 20 actions instead of 100 and raising the step limit from 280 to 400 made no difference. I do not know the cause. My guesses are too little data for this policy type, and demonstrations that are hard to imitate: they come from 14 different human timings, and the proportional controller produces saturated actions.
+So the policy itself has not learned the task. Re-planning every 20 actions instead of 100 and raising the step limit from 280 to 400 made no difference. A longer training run was cut off by a Colab disconnect before it could be evaluated, so I cannot say whether more training fixes it. I do not know the cause. My guesses are too little data for this policy type, and demonstrations that are hard to imitate: they come from 14 different human timings, and the proportional controller produces saturated actions.
 
 **Housekeeping that went wrong.** The results file of the first speed sweep was lost when its Colab session ended. Every outcome had been printed in the log, so `src/reconstruct_sweep.py` rebuilds the file from that log; the step counts are recomputed, which is exact because retiming is deterministic. Rows for 1.25x and 1.75x come from a later run and were written directly.
 
