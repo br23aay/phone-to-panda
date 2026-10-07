@@ -14,7 +14,7 @@ Submission for the Humanoid Robot Learning Research internship challenge. Every 
 | Clips that drive the robot to success | 13 |
 | Demonstrations produced (8 layouts per clip) | 101 of 112 replays, 90% |
 | Speed conditions measured | 42 replays each, on unseen layouts |
-| Policy trained only on those demonstrations | 58% success over 50 episodes, from camera images and robot state alone |
+| Policies trained only on those demonstrations | ACT 58% and SmolVLA 58% success, 50 episodes each, from camera images and robot state alone |
 
 [Results](#results) · [How it works](#how-it-works) · [Design choices](#design-choices) · [What worked and what did not](#what-worked-and-what-did-not) · [Compute setup](#compute-setup) · [How to run](#how-to-run) · [Repository layout](#repository-layout)
 
@@ -44,21 +44,34 @@ Non-uniform speedup is better than uniform at every speed where anything works. 
 
 ![The same clip at normal speed, uniform 2x and non-uniform 2x](results/videos/clip-13_speed_comparison.gif)
 
-*The same clip three ways. Uniform 2x leaves the object behind; non-uniform 2x keeps the grasp.*
+*The same clip three ways. At uniform 2x the arm picks the can up, but the gripper opens while the arm is still moving fast and the can is thrown clear of the basket. Non-uniform 2x slows down around the release and drops it in.*
 
-**3. Training a policy on the demonstrations.** An ACT policy trained only on my 101 demonstrations completes the task in 29 of 50 evaluation episodes (58%) after 85,000 training steps. At test time it gets two camera images and the robot's own state. It is never told where the object or the basket is.
+**3. Training policies on the demonstrations.** I trained two policies on my 101 demonstrations and nothing else: ACT from scratch, and SmolVLA fine-tuned from its public base checkpoint. Both complete the task in 29 of 50 evaluation episodes (58%). At test time a policy gets two camera images and the robot's own state. It is never told where the object or the basket is.
+
+| Policy | Training | Actions executed before looking again | Success | Episodes |
+| --- | --- | --- | --- | --- |
+| ACT, from scratch | 85,000 steps, about 13 hours on a T4 | 20 | **58%** | 50 |
+| SmolVLA, fine-tuned | 20,000 steps, 2 hours 36 minutes on an L4 | 10 | **58%** | 50 |
+| SmolVLA, fine-tuned (same weights) | as above | 50, the default | 20% | 50 |
+| ACT, from scratch | 45,000 steps | 20 | 48% | 50 |
+
+All four rows use 256 x 256 images, the same as training.
+
+**The SmolVLA result depends on how often it looks.** SmolVLA predicts 50 actions at a time, and by default executes all 50 (2.5 seconds) before it looks at the cameras again. Run that way, my fine-tuned model scored 20%. I had evaluated ACT re-planning every 20 actions, so I re-ran the same SmolVLA weights re-planning every 10. That scored 58%. Nothing was retrained between the two rows. I chose 10 after seeing the 20%, so the 58% is a setting picked with knowledge of the first result, on the same 50 episodes. I report both for that reason.
+
+What I take from it: with 101 demonstrations of one task, a pretrained VLA reached the same success rate as ACT in under a quarter of the training steps, but only when it re-planned often. The two 58% figures being identical is a coincidence of 29 successes each. With 50 episodes the standard error is about 7 points, so this does not show one policy is better than the other.
+
+Earlier ACT runs, kept for the record:
 
 | Policy | Evaluation images | Success | Episodes |
 | --- | --- | --- | --- |
-| ACT, 85,000 training steps | 256 x 256, same as training | **58%** | 50 |
-| ACT, 45,000 training steps | 256 x 256, same as training | 48% | 50 |
 | ACT, 45,000 training steps, first run at the correct size | 256 x 256, same as training | 55% | 20 |
 | ACT, 45,000 training steps | 360 x 360, my mistake | 0% | 20 |
 | ACT, 15,000 training steps | 360 x 360, my mistake | 0% | 70 |
 
 In the 20-episode run, successful episodes finished in 106 to 273 steps and the 9 failures all ran to the 400-step limit. So the policy either completes the task at about the speed of my demonstrations or does not complete it at all.
 
-The 0% rows are not a property of the policy. For two days I evaluated at the wrong image size and believed the policy had failed. That story is under "What worked and what did not". Going from 45,000 to 85,000 steps moved the result from 48% to 58%. With 50 episodes each, that gap is about one standard error wide, so I read it as "more training probably helps a little", not as a proven gain.
+The 0% rows are not a property of the policy. For two days I evaluated at the wrong image size and believed the policy had failed. That story is under "What worked and what did not". Going from 45,000 to 85,000 ACT steps moved the result from 48% to 58%. With 50 episodes each, that gap is about one standard error wide, so I read it as "more training probably helps a little", not as a proven gain.
 
 ## How it works
 
@@ -129,10 +142,11 @@ The work is split across two machines, because my laptop cannot run the simulato
 | Recording, keypoint extraction, clip checks | Windows laptop, CPU only | MediaPipe runs on a CPU. No GPU needed |
 | LIBERO replays, demonstrations, speed sweeps, videos | Google Colab, CPU runtime | LIBERO is built on robosuite and MuJoCo with headless EGL rendering, which is a Linux stack. The replays use physics, not a GPU |
 | ACT training and evaluation | Google Colab, T4 GPU | My laptop has no CUDA GPU. Training took about 2 hours 20 minutes per 15,000 steps on a T4 |
+| SmolVLA fine-tuning and evaluation | Google Colab, L4 GPU | On the T4 one SmolVLA step took 4.2 seconds, which made 20,000 steps a 23-hour job. On an L4 it ran at about 2.1 steps per second and finished in 2 hours 36 minutes |
 
 Colab sessions are not persistent, and that shaped the tooling. Every long job copies its inputs from Google Drive to local disk first, writes results and checkpoints back as it goes, and can be restarted. `src/colab_train_act.py` and `src/colab_continue_training.py` are those job scripts.
 
-**Why ACT and not SmolVLA.** The challenge suggests a small VLA such as SmolVLA. I trained ACT first because it is about a tenth of the size and trains on a free-tier T4, which let me get the full loop (data, training, evaluation) running end to end before spending GPU hours. The first evaluations read 0%, and I spent the remaining time finding out why instead of starting a second, larger model on the same data. The cause turned out to be the evaluation, not the policy. SmolVLA is step 4 in the list at the end.
+**Why ACT first, then SmolVLA.** The challenge suggests a small VLA such as SmolVLA. I trained ACT first because it is about a tenth of the size and trains on a T4, which let me get the full loop (data, training, evaluation) running end to end before spending more GPU hours. Once ACT evaluated correctly I fine-tuned SmolVLA on the same dataset. SmolVLA's base checkpoint expects cameras named `camera1` and `camera2`, so the run maps my two camera streams onto those names. Mixed-precision training (`use_amp`) failed on this model with a bfloat16 error, so it ran in full precision. The commands are in `src/colab_train_smolvla.sh`.
 
 ## Repository layout
 
@@ -173,7 +187,7 @@ python src/plot_results.py
 python src/make_videos.py clip-13    # replay videos
 ```
 
-Policy training used `src/convert_demos.py`, then `lerobot-train --policy.type=act`. The exact commands are in `src/colab_train_act.py` and `src/colab_continue_training.py`, which are the Colab job scripts I ran.
+Policy training used `src/convert_demos.py`, then `lerobot-train --policy.type=act`. The exact commands are in `src/colab_train_act.py` and `src/colab_continue_training.py`, which are the Colab job scripts I ran. The SmolVLA fine-tune and its evaluation are in `src/colab_train_smolvla.sh`.
 
 ## Why this could matter for a humanoid robot company
 
@@ -190,8 +204,7 @@ I built this around problems Humanoid describes in its public technical write-up
 In the order I would do them:
 
 1. **A tracking controller that anticipates the path.** The proportional controller lags at speed. Feed-forward velocity should move the point where speedup breaks, and would show whether the limit is the controller or the physics of the grasp.
-2. **Close the gap from 58%.** Look at the episodes that time out, train longer, and try temporal ensembling of the action chunks.
+2. **Close the gap from 58%.** Look at the episodes that time out, train longer, and try temporal ensembling of the action chunks. For SmolVLA, sweep how often it re-plans on a separate set of episodes, so the setting is not chosen on the test set.
 3. **Residual RL on top of the replay.** Keep the retargeted path as the base and let PPO learn small corrections with a time penalty. My earlier work was PPO on the Shadow Hand in MuJoCo, so this is the direction I know best.
-4. **Post-train a small VLA** (SmolVLA) on the same demonstrations and compare it with ACT.
-5. **Depth and rotation.** Add a second camera, or an egocentric view with a hand-pose model, so the retargeting is no longer planar.
-6. **A second embodiment.** Replay the same object-centric trajectories on a different gripper to test how much of the pipeline is robot-specific.
+4. **Depth and rotation.** Add a second camera, or an egocentric view with a hand-pose model, so the retargeting is no longer planar.
+5. **A second embodiment.** Replay the same object-centric trajectories on a different gripper to test how much of the pipeline is robot-specific.
