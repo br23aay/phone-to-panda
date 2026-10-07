@@ -203,7 +203,9 @@ lerobot-eval --policy.path=<path to the pretrained_model folder inside the downl
   --env.episode_length=400 --eval.batch_size=1 --eval.n_episodes=50
 ```
 
-The two image-size flags matter. Without them the evaluation renders 360 x 360 images and the result is 0%. `src/convert_demos.py`, then `lerobot-train --policy.type=act`. The exact commands are in `src/colab_train_act.py` and `src/colab_continue_training.py`, which are the Colab job scripts I ran. The SmolVLA fine-tune and its evaluation are in `src/colab_train_smolvla.sh`.
+The two image-size flags matter. Without them the evaluation renders 360 x 360 images and the result is 0%.
+
+Policy training used `src/convert_demos.py`, then `lerobot-train --policy.type=act`. The exact commands are in `src/colab_train_act.py` and `src/colab_continue_training.py`, which are the Colab job scripts I ran. The SmolVLA fine-tune and its evaluation are in `src/colab_train_smolvla.sh`.
 
 ## Why this could matter for a humanoid robot company
 
