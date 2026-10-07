@@ -1,0 +1,34 @@
+Excerpts from the evaluation logs behind the policy table in the README.
+The full logs are several MB of progress-bar output, so only the result lines are kept here, with the bar characters trimmed.
+All runs: libero_object task 0, 256 x 256 images, episode_length 400, 50 episodes, batch size 1.
+
+=== ACT, 85,000 training steps, n_action_steps=20 (7 Oct 2026, Colab T4) ===
+Stepping through eval batches:  10%| 5/50  [06:22<50:38, 67.52s/it, running_success_rate=60.0%]
+Stepping through eval batches:  20%| 10/50 [11:35<44:03, 66.08s/it, running_success_rate=70.0%]
+Stepping through eval batches:  30%| 15/50 [18:42<46:17, 79.35s/it, running_success_rate=66.7%]
+Stepping through eval batches:  40%| 20/50 [21:52<21:50, 43.67s/it, running_success_rate=75.0%]
+Stepping through eval batches:  50%| 25/50 [29:24<31:04, 74.59s/it, running_success_rate=64.0%]
+Stepping through eval batches:  60%| 30/50 [35:09<22:42, 68.10s/it, running_success_rate=63.3%]
+Stepping through eval batches:  70%| 35/50 [42:12<20:45, 83.03s/it, running_success_rate=60.0%]
+Stepping through eval batches:  80%| 40/50 [46:51<09:50, 59.03s/it, running_success_rate=62.5%]
+Stepping through eval batches:  90%| 45/50 [53:37<05:46, 69.35s/it, running_success_rate=60.0%]
+Stepping through eval batches: 100%| 50/50 [1:00:30<00:00, 72.61s/it, running_success_rate=58.0%]
+INFO 2026-10-07 08:30:47 bot_eval.py:809 {'avg_sum_reward': 0.58, 'avg_max_reward': 0.58, 'pc_success': 57.99999999999999, 'n_episodes': 50, 'eval_s': 3631.1334195137024,
+INFO 2026-10-07 08:30:47 bot_eval.py:822 End of eval
+
+=== SmolVLA, 20,000 fine-tuning steps, n_action_steps=10 (7 Oct 2026, Colab L4) ===
+'pc_success': 57.99999999999999, 'n_episodes': 50, 'eval_s': 2776.0509283542633
+'successes': [False, True, True, True, True, True, False, True, True, True, False, True, True, True, False, True, True, False, False, True, False, True, True, True, False, True, True, False, True, True, False, True, False, False, True, True, False, True, False, False, True, False, True, False, False, False, True, False, False, True]
+
+=== SmolVLA, same weights, n_action_steps=50 (the default) ===
+'pc_success': 20.0, 'n_episodes': 50, 'eval_s': 3292.223790884018
+'successes': [False, False, False, False, False, False, True, False, False, False, False, False, False, True, True, False, False, False, True, True, False, False, True, False, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, False, True, True]
+
+=== SmolVLA fine-tuning loss (lerobot-train, batch size 16) ===
+step:10   loss:1.28   (40-step test run)
+step:2K   loss:0.259
+step:5K   loss:0.141
+step:10K  loss:0.082
+step:16K  loss:0.058
+step:20K  loss:0.053
+INFO 2026-10-07 12:00:59 ot_train.py:770 End of training
