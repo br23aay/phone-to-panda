@@ -187,6 +187,12 @@ python src/plot_results.py
 python src/make_videos.py clip-13    # replay videos
 ```
 
+Notes from running these on a fresh copy of the repo:
+
+- One replay takes about 40 seconds on a Colab CPU, so the 112 demonstration replays in `build_demos.py` take a little over an hour.
+- `speed_sweep.py` resumes from `results/replay_speed_raw.csv`. The repo ships that file complete, so the command prints `DONE` straight away. To re-run the sweep yourself, move that file aside first. `SPEEDS=1.25,1.75 python src/speed_sweep.py 10 13` adds the two extra speeds in the table.
+- MuJoCo prints an EGL error traceback when each script exits. It comes after the results are written and the exit code is 0.
+
 Policy training used `src/convert_demos.py`, then `lerobot-train --policy.type=act`. The exact commands are in `src/colab_train_act.py` and `src/colab_continue_training.py`, which are the Colab job scripts I ran. The SmolVLA fine-tune and its evaluation are in `src/colab_train_smolvla.sh`.
 
 ## Why this could matter for a humanoid robot company
