@@ -14,7 +14,7 @@ Submission for the Humanoid Robot Learning Research internship challenge. Every 
 | Clips that drive the robot to success | 13 |
 | Demonstrations produced (8 layouts per clip) | 101 of 112 replays, 90% |
 | Speed conditions measured | 42 replays each, on unseen layouts |
-| Policy trained only on those demonstrations | 48% success over 50 episodes, from camera images and robot state alone |
+| Policy trained only on those demonstrations | 58% success over 50 episodes, from camera images and robot state alone |
 
 [Results](#results) · [How it works](#how-it-works) · [Design choices](#design-choices) · [What worked and what did not](#what-worked-and-what-did-not) · [Compute setup](#compute-setup) · [How to run](#how-to-run) · [Repository layout](#repository-layout)
 
@@ -46,18 +46,19 @@ Non-uniform speedup is better than uniform at every speed where anything works. 
 
 *The same clip three ways. Uniform 2x leaves the object behind; non-uniform 2x keeps the grasp.*
 
-**3. Training a policy on the demonstrations.** An ACT policy trained only on my 101 demonstrations completes the task in 24 of 50 evaluation episodes (48%). At test time it gets two camera images and the robot's own state. It is never told where the object or the basket is.
+**3. Training a policy on the demonstrations.** An ACT policy trained only on my 101 demonstrations completes the task in 29 of 50 evaluation episodes (58%) after 85,000 training steps. At test time it gets two camera images and the robot's own state. It is never told where the object or the basket is.
 
 | Policy | Evaluation images | Success | Episodes |
 | --- | --- | --- | --- |
-| ACT, 45,000 training steps | 256 x 256, same as training | **48%** | 50 |
+| ACT, 85,000 training steps | 256 x 256, same as training | **58%** | 50 |
+| ACT, 45,000 training steps | 256 x 256, same as training | 48% | 50 |
 | ACT, 45,000 training steps, first run at the correct size | 256 x 256, same as training | 55% | 20 |
 | ACT, 45,000 training steps | 360 x 360, my mistake | 0% | 20 |
 | ACT, 15,000 training steps | 360 x 360, my mistake | 0% | 70 |
 
 In the 20-episode run, successful episodes finished in 106 to 273 steps and the 9 failures all ran to the 400-step limit. So the policy either completes the task at about the speed of my demonstrations or does not complete it at all.
 
-The 0% rows are not a property of the policy. For two days I evaluated at the wrong image size and believed the policy had failed. That story is under "What worked and what did not". Across both runs that is 35 successes in 70 episodes.
+The 0% rows are not a property of the policy. For two days I evaluated at the wrong image size and believed the policy had failed. That story is under "What worked and what did not". Going from 45,000 to 85,000 steps moved the result from 48% to 58%. With 50 episodes each, that gap is about one standard error wide, so I read it as "more training probably helps a little", not as a proven gain.
 
 ## How it works
 
@@ -116,7 +117,7 @@ What I take from it: compare the tensors at the policy's input, in the real eval
 - One task, one object, one simulator.
 - Building demonstrations reads object and basket positions from the simulator. A trained policy would not get those; it sees only camera images and its own state.
 - The speed results are for open-loop replay with a simple controller, not for the learned policy.
-- The policy result is from 70 episodes on one task. I have not yet evaluated the 15,000-step policy at the correct image size, so I cannot say how much the extra training contributed.
+- The policy results are from 50 episodes each on one task, so each figure is uncertain by roughly 7 points either way. I have not evaluated the 15,000-step policy at the correct image size.
 - 14 clips from one person on one evening.
 
 ## Compute setup
@@ -189,7 +190,7 @@ I built this around problems Humanoid describes in its public technical write-up
 In the order I would do them:
 
 1. **A tracking controller that anticipates the path.** The proportional controller lags at speed. Feed-forward velocity should move the point where speedup breaks, and would show whether the limit is the controller or the physics of the grasp.
-2. **Close the gap from 48%.** Look at the episodes that time out, train longer, and try temporal ensembling of the action chunks.
+2. **Close the gap from 58%.** Look at the episodes that time out, train longer, and try temporal ensembling of the action chunks.
 3. **Residual RL on top of the replay.** Keep the retargeted path as the base and let PPO learn small corrections with a time penalty. My earlier work was PPO on the Shadow Hand in MuJoCo, so this is the direction I know best.
 4. **Post-train a small VLA** (SmolVLA) on the same demonstrations and compare it with ACT.
 5. **Depth and rotation.** Add a second camera, or an egocentric view with a hand-pose model, so the retargeting is no longer planar.
