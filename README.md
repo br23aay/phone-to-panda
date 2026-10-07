@@ -158,7 +158,7 @@ results/
   replay_speed.csv     the table in this README
   figures/speed.png    the chart in this README
   videos/              replay videos at each speed, and the side-by-side
-  policy/              training and evaluation logs for the ACT runs
+  policy/              training and evaluation logs; eval_58_excerpts.txt has the result lines behind the 58% and 20% rows
 ```
 
 ## How to run
