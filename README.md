@@ -193,7 +193,17 @@ Notes from running these on a fresh copy of the repo:
 - `speed_sweep.py` resumes from `results/replay_speed_raw.csv`. The repo ships that file complete, so the command prints `DONE` straight away. To re-run the sweep yourself, move that file aside first. `SPEEDS=1.25,1.75 python src/speed_sweep.py 10 13` adds the two extra speeds in the table.
 - MuJoCo prints an EGL error traceback when each script exits. It comes after the results are written and the exit code is 0.
 
-Policy training used `src/convert_demos.py`, then `lerobot-train --policy.type=act`. The exact commands are in `src/colab_train_act.py` and `src/colab_continue_training.py`, which are the Colab job scripts I ran. The SmolVLA fine-tune and its evaluation are in `src/colab_train_smolvla.sh`.
+To check the 58% ACT result without retraining, download the trained checkpoint (85,000 steps) from [Google Drive](https://drive.google.com/drive/folders/1PTeBDsUhcThQw31Oksxo9cyUqcHkPts4?usp=sharing) and evaluate it:
+
+```
+lerobot-eval --policy.path=<path to the pretrained_model folder inside the download> \
+  --policy.n_action_steps=20 \
+  --env.type=libero --env.task=libero_object --env.task_ids=[0] \
+  --env.observation_height=256 --env.observation_width=256 \
+  --env.episode_length=400 --eval.batch_size=1 --eval.n_episodes=50
+```
+
+The two image-size flags matter. Without them the evaluation renders 360 x 360 images and the result is 0%. `src/convert_demos.py`, then `lerobot-train --policy.type=act`. The exact commands are in `src/colab_train_act.py` and `src/colab_continue_training.py`, which are the Colab job scripts I ran. The SmolVLA fine-tune and its evaluation are in `src/colab_train_smolvla.sh`.
 
 ## Why this could matter for a humanoid robot company
 
