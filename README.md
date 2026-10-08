@@ -131,6 +131,7 @@ What I take from it: compare the tensors at the policy's input, in the real eval
 - Building demonstrations reads object and basket positions from the simulator. A trained policy would not get those; it sees only camera images and its own state.
 - The speed results are for open-loop replay with a simple controller, not for the learned policy.
 - The policy results are from 50 episodes each on one task, so each figure is uncertain by roughly 7 points either way. I have not evaluated the 15,000-step policy at the correct image size.
+- The evaluation runs LIBERO's fixed starting layouts in order, and my demonstrations were built on the first 8 of them, so 8 of the 50 evaluation episodes start from a layout seen in training. On the other 42, SmolVLA succeeded in 23 (55%). The ACT log kept only the running total, so I cannot split its result the same way.
 - 14 clips from one person on one evening.
 
 ## Compute setup
