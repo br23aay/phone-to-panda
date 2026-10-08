@@ -1,6 +1,6 @@
 # phone-to-panda
 
-**14 phone clips of my hand, one evening of recording, 101 robot demonstrations.** I filmed myself moving a small box into a tub, turned the video into gripper trajectories, and used them to drive a Panda arm in the LIBERO simulator. Then I measured how far that motion can be sped up before the robot starts failing, and why.
+**14 phone clips of my hand, one evening of recording. Replayed on a simulated Panda arm, 93% of replays succeed at normal speed on layouts the demonstrations never used, and 13 of the 14 clips work.** I filmed myself moving a small box into a tub, turned the video into gripper trajectories, and used them to drive a Panda arm in the LIBERO simulator. Then I measured how far that motion can be sped up before the robot starts failing, and why.
 
 ![My phone clip on the left, the simulated Panda following it on the right](results/videos/clip-13_side_by_side.gif)
 
@@ -11,7 +11,7 @@ Submission for the Humanoid Robot Learning Research internship challenge. Every 
 | | |
 | --- | --- |
 | Phone clips recorded | 14 |
-| Clips that drive the robot to success | 13 |
+| Replay success at normal speed, unseen layouts | **93%** (39 of 42 replays; every failure is clip-7) |
 | Demonstrations produced (8 layouts per clip) | 101 of 112 replays, 90% |
 | Speed conditions measured | 42 replays each, on unseen layouts |
 | Policies trained only on those demonstrations | ACT 58% and SmolVLA 58% success, 50 episodes each, from camera images and robot state alone |
@@ -20,7 +20,7 @@ Submission for the Humanoid Robot Learning Research internship challenge. Every 
 
 ## Results
 
-**1. Phone video to robot motion.** 13 of my 14 clips make the simulated arm complete the task ("pick up the alphabet soup and place it in the basket"). Replayed on 8 different starting layouts each, 101 of 112 replays succeed (90%). One clip (clip-7) fails on every layout and one (clip-2) fails on 3 of 8.
+**1. Phone video to robot motion.** 13 of my 14 clips make the simulated arm complete the task ("pick up the alphabet soup and place it in the basket"). Replayed on 8 different starting layouts each, 101 of 112 replays succeed (90%). One clip (clip-7) fails on every layout and one (clip-2) fails on 3 of 8. On three further layouts never used for demonstrations, 39 of 42 normal-speed replays succeed (93%): the 13 working clips succeed every time, and the 3 failures are all clip-7.
 
 **2. Speeding the motion up.** Each clip was replayed at several speeds in two ways: *uniform* (everything faster) and *non-uniform* (faster everywhere except half a second around the grasp and the release). 42 replays per condition, on layouts the demonstrations never used.
 
