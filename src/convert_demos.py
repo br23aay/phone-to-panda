@@ -28,17 +28,20 @@ def main():
     files = sorted(glob.glob(os.path.join(raw, "*.npz")))
     for n, path in enumerate(files, 1):
         d = np.load(path, allow_pickle=True)
+        # Read each array once: indexing d["image"] inside the loop would
+        # decompress the whole array again on every frame.
+        img, img2, state, action = d["image"], d["image2"], d["state"], d["action"]
         task = str(d["language"])
-        for i in range(len(d["action"])):
+        for i in range(len(action)):
             ds.add_frame({
-                "observation.images.image": d["image"][i],
-                "observation.images.image2": d["image2"][i],
-                "observation.state": d["state"][i],
-                "action": d["action"][i],
+                "observation.images.image": img[i],
+                "observation.images.image2": img2[i],
+                "observation.state": state[i],
+                "action": action[i],
                 "task": task,
             })
         ds.save_episode()
-        print(f"{n}/{len(files)} {os.path.basename(path)}: {len(d['action'])} frames", flush=True)
+        print(f"{n}/{len(files)} {os.path.basename(path)}: {len(action)} frames", flush=True)
     ds.finalize()
     print(f"DONE: {len(files)} episodes written to {out}", flush=True)
 
